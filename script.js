@@ -1,8 +1,13 @@
+// 전역 변수로 선언
+var filteredData = [];
+
 document.addEventListener('DOMContentLoaded', function() {
     const manufacturerFilter = document.getElementById('manufacturerFilter');
     const modelFilter = document.getElementById('modelFilter');
     const yearFilter = document.getElementById('yearFilter');
     const vehiclesTable = document.getElementById('vehiclesTable').getElementsByTagName('tbody')[0];
+    const button = document.getElementById('redirectToShopButton');
+    const adapterInfo = document.getElementById('adapterInfo');
 
     const vehicleData =[
     {"manufacturer":"BMW","model":"1시리즈","모델":"1시리즈(컨버터블,E88)","연식":"2008-2013","year":"1시리즈(컨버터블,E88)(2008-2013)","운전석\n(in)":20,"driverSideWiper":500,"조수석\n(in)":20,"passengerSideWiper":500,"후면\n(in)":null,"backwiper":"-","adapterNumber":"07","adapterAvailable":"아답터 구매 필요 없음"},
@@ -1552,21 +1557,25 @@ document.addEventListener('DOMContentLoaded', function() {
     {"manufacturer":"혼다","model":"S2000","모델":"S2000","연식":"1999-2009","year":"S2000(1999-2009)","운전석\n(in)":20,"driverSideWiper":500,"조수석\n(in)":16,"passengerSideWiper":400,"후면\n(in)":null,"backwiper":"-","adapterNumber":"02","adapterAvailable":"아답터 구매 필요 없음"}
 ]
 
+manufacturerFilter.addEventListener('change', updateModelsDropdown);
+modelFilter.addEventListener('change', updateYearsDropdown);
+yearFilter.addEventListener('change', displayVehicleData);
+button.addEventListener('click', redirectToShop);
+
 function updateModelsDropdown() {
     const selectedManufacturer = manufacturerFilter.value;
     modelFilter.disabled = !selectedManufacturer;
-    modelFilter.innerHTML = '<option value="">모델 선택</option>'; // Reset model dropdown
-    yearFilter.innerHTML = '<option value="">연식 선택</option>'; // Reset year dropdown
+    modelFilter.innerHTML = '<option value="">모델 선택</option>';
+    yearFilter.innerHTML = '<option value="">연식 선택</option>';
     yearFilter.disabled = true;
-    vehiclesTable.innerHTML = ''; // Clear table when manufacturer changes
-    document.getElementById('adapterInfo').innerHTML = ''; // 어댑터 구매여부 정보 초기화
-
+    vehiclesTable.innerHTML = '';
+    adapterInfo.innerHTML = '';
 
     if (selectedManufacturer) {
         let models = vehicleData
             .filter(v => v.manufacturer.toLowerCase() === selectedManufacturer.toLowerCase())
             .map(v => v.model);
-        models = [...new Set(models)]; // Remove duplicates
+        models = [...new Set(models)];
 
         models.forEach(model => {
             const option = document.createElement('option');
@@ -1574,27 +1583,22 @@ function updateModelsDropdown() {
             option.textContent = model;
             modelFilter.appendChild(option);
         });
-    } else {
-        // If no manufacturer is selected, keep everything reset
-        modelFilter.disabled = true;
-        yearFilter.disabled = true;
-        //vehiclesTable.innerHTML = '';
+        modelFilter.disabled = false;
     }
 }
 
 function updateYearsDropdown() {
     const selectedModel = modelFilter.value;
     yearFilter.disabled = !selectedModel;
-    yearFilter.innerHTML = '<option value="">연식 선택</option>'; // Reset year dropdown
-    vehiclesTable.innerHTML = ''; // Clear table when model changes
-    document.getElementById('adapterInfo').innerHTML = ''; // 어댑터 정보 초기화
-
+    yearFilter.innerHTML = '<option value="">연식 선택</option>';
+    vehiclesTable.innerHTML = '';
+    adapterInfo.innerHTML = '';
 
     if (selectedModel) {
         let years = vehicleData
             .filter(v => v.model === selectedModel)
             .map(v => v.year);
-        years = [...new Set(years)]; // Remove duplicates
+        years = [...new Set(years)];
 
         years.forEach(year => {
             const option = document.createElement('option');
@@ -1602,30 +1606,44 @@ function updateYearsDropdown() {
             option.textContent = year;
             yearFilter.appendChild(option);
         });
-    } else {
-        yearFilter.disabled =true;
+        yearFilter.disabled = false;
     }
 }
 
 function displayVehicleData() {
     const selectedYear = yearFilter.value;
-    vehiclesTable.innerHTML = ''; // Clear previous data
-    document.getElementById('adapterInfo').innerHTML = ''; // 어댑터 정보 초기화
-
-    if (selectedYear) {
-        const filteredData = vehicleData.filter(v => v.year === selectedYear);
-        filteredData.forEach(data => {
-            const row = vehiclesTable.insertRow();
-            row.insertCell(0).textContent = data.driverSideWiper + "mm";
-            row.insertCell(1).textContent = data.passengerSideWiper + "mm";
-            row.insertCell(2).textContent = data.backwiper + "mm";
-            row.insertCell(3).textContent = data.adapterNumber;
-            document.getElementById('adapterInfo').textContent = `어댑터 구매여부: ${data.adapterAvailable}`;
-        });
+    if (!selectedYear) {
+        alert('연식을 선택해주세요.');
+        return;
     }
+
+    filteredData = vehicleData.filter(v => v.year === selectedYear);
+    if (filteredData.length === 0) {
+        alert('선택한 연식에 해당하는 데이터가 없습니다.');
+        return;
+    }
+
+    vehiclesTable.innerHTML = '';
+    filteredData.forEach(data => {
+        const row = vehiclesTable.insertRow();
+        row.insertCell(0).textContent = data.driverSideWiper;
+        row.insertCell(1).textContent = data.passengerSideWiper;
+        row.insertCell(2).textContent = data.backwiper;
+        row.insertCell(3).textContent = data.adapterNumber;
+    });
+
+    adapterInfo.textContent = `어댑터 구매여부: ${filteredData[0].adapterAvailable}`;
+    button.disabled = false; // 버튼을 활성화
 }
 
-manufacturerFilter.addEventListener('change', updateModelsDropdown);
-modelFilter.addEventListener('change', updateYearsDropdown);
-yearFilter.addEventListener('change', displayVehicleData);
+function redirectToShop() {
+    if (!filteredData || filteredData.length === 0) {
+        alert('와이퍼 사이즈를 먼저 선택해주세요.');
+        return;
+    }
+    const driverWiperSize = filteredData[0].driverSideWiper;
+    const passengerWiperSize = filteredData[0].passengerSideWiper;
+    window.location.href = `https://natuber.co.kr/product/%EC%9E%90%EB%8F%99%EC%B0%A8%EC%9D%98%EB%AA%A8%EB%93%A0%EA%B2%83-%EC%B4%88%EA%B0%84%EB%8B%A8-%EB%B0%9C%EC%88%98%EC%BD%94%ED%8C%85-%EC%8B%A4%EB%A6%AC%EC%BD%98-%EC%99%80%EC%9D%B4%ED%8D%BC/307?driverSize=${driverWiperSize}&passengerSize=${passengerWiperSize}`;
+}
+
 });
